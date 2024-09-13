@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/sirolli-icono.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tetris Sirolli</title>
+  </head>
+  <body>
+    <div id="app">
+      <section class="start-screen" id="startScreen">
+        Start Game
+        <p>Press any key...</p>
+
+        <p>
+          <img src="/svg/keyboard_arrows_all.svg" width="50" />
+          <img src="/svg/keyboard_space_outline.svg" width="50" />
+          <img src="/svg/keyboard_tab_outline.svg" width="50" />
+        </p>
+      </section>
+
+      <canvas id="pieceBox" class="piece-box"></canvas>
+      <canvas id="tetris" class="tetris-box"></canvas>
+    </div>
+
+    <strong>Level <span id="levelLabel">0</span></strong>
+    <strong>Score: <span id="scoreLabel">0</span></strong>
+
+    <audio id="mainTheme" src="/audio/tetris_theme.mp3" loop="true"></audio>
+    <audio id="dropTheme" src="/audio/drop.wav"></audio>
+    <audio id="gameOverTheme" src="/audio/game_over.wav"></audio>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
