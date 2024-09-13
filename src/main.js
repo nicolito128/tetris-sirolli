@@ -326,6 +326,6 @@ document.addEventListener('keydown', event => {
             game.savePiece()
         break
       
-        default: game.start(); game.updateScore(5500)
+        default: game.start()
     }
 })
