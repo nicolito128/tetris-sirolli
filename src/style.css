@@ -17,6 +17,8 @@ body {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: auto;
+  align-items: start;
   justify-content: center;
 }
 
@@ -29,11 +31,20 @@ strong {
   display: inline;
 }
 
+#app {
+  position: relative;
+}
+
 .piece-box {
   position: absolute;
   width: 100px;
   height: 100px;
-  left: 30%;
+  top: 0;
+  left: -50%;
+}
+
+.tetris-box {
+  margin-right: 50px;
 }
 
 .start-screen {

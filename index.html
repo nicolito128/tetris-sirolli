@@ -7,18 +7,18 @@
     <title>Tetris Sirolli</title>
   </head>
   <body>
+    <section class="start-screen" id="startScreen">
+      Start Game
+      <p>Press enter</p>
+
+      <p>
+        <img src="/svg/keyboard_arrows_all.svg" width="50" />
+        <img src="/svg/keyboard_space_outline.svg" width="50" />
+        <img src="/svg/keyboard_tab_outline.svg" width="50" />
+      </p>
+    </section>
+    
     <div id="app">
-      <section class="start-screen" id="startScreen">
-        Start Game
-        <p>Press any key...</p>
-
-        <p>
-          <img src="/svg/keyboard_arrows_all.svg" width="50" />
-          <img src="/svg/keyboard_space_outline.svg" width="50" />
-          <img src="/svg/keyboard_tab_outline.svg" width="50" />
-        </p>
-      </section>
-
       <canvas id="pieceBox" class="piece-box"></canvas>
       <canvas id="tetris" class="tetris-box"></canvas>
     </div>
@@ -28,7 +28,7 @@
 
     <audio id="mainTheme" src="/audio/tetris_theme.mp3" loop="true"></audio>
     <audio id="dropTheme" src="/audio/drop.wav"></audio>
-    <audio id="gameOverTheme" src="/audio/game_over.wav"></audio>
+    <audio id="overTheme" src="/audio/game_over.wav"></audio>
 
     <script type="module" src="/src/main.js"></script>
   </body>

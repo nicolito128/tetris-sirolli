@@ -1,359 +1,331 @@
+import { Matrix } from './matrix'
+import { Renderer } from './renderer'
+import { Bag } from './pieces'
 import './style.css'
-import {
-  BLOCK_SIZE,
-  MATRIX_HEIGHT,
-  MATRIX_WIDTH,
-  EVENT_MOVEMENTS,
-  PIECES
-} from './consts'
 
-const canvas = document.querySelector('#tetris')
-const context = canvas.getContext('2d')
-
-canvas.width = BLOCK_SIZE * MATRIX_WIDTH
-canvas.height = BLOCK_SIZE * MATRIX_HEIGHT
-context.scale(BLOCK_SIZE, BLOCK_SIZE)
-
-const pieceBoxCanvas = document.querySelector('#pieceBox')
-const pieceBoxContext = pieceBoxCanvas.getContext('2d')
-
-pieceBoxCanvas.width = BLOCK_SIZE * 7
-pieceBoxCanvas.height = BLOCK_SIZE * 7
-pieceBoxContext.scale(BLOCK_SIZE, BLOCK_SIZE)
-
-const scoreLabel = document.querySelector('#scoreLabel')
-let score = 0
-
-const levelLabel = document.querySelector('#levelLabel')
-
-const mainTheme = document.querySelector('#mainTheme')
-mainTheme.volume = 0.85
-
-const dropTheme = document.querySelector('#dropTheme')
-dropTheme.volume = 1
-
-const gameOverTheme = document.querySelector('#gameOverTheme')
-gameOverTheme.volume = 1
-
-const matrix = Array.from({ length: MATRIX_HEIGHT }, () => new Array(MATRIX_WIDTH).fill(0));
-
-let bagOfPieces = [...PIECES]
-
-function pickPieceFromBag() {
-  const curPiece = bagOfPieces.splice(0, 1)[0]
-  if (bagOfPieces.length === 0) {
-    bagOfPieces = [...PIECES]
-    shuffleBag()
-  }
-
-  return curPiece
+const EVENT_MOVEMENTS = {
+    LEFT: 'ArrowLeft',
+    RIGHT: 'ArrowRight',
+    DOWN: 'ArrowDown',
+    ROTATE: 'ArrowUp',
+    DROP: ' ',
+    SAVE_PIECE: 'Tab',
 }
 
-function shuffleBag() {
-  let currentIndex = bagOfPieces.length;
+class Game {
+    #DEFAULT_MATRIX_WIDTH = 10
+    #DEFAULT_MATRIX_HEIGHT = 20
+    #DEFAULT_PIXEL_SIZE = 25
 
-  while (currentIndex != 0) {
-    let randomIndex = Math.floor(Math.random() * currentIndex)
-    currentIndex--
+    #DEFAULT_PIECE_BOX_WIDTH = 7
+    #DEFAULT_PIECE_BOX_HEIGHT = 7
 
-    [bagOfPieces[currentIndex], bagOfPieces[randomIndex]] = [
-      bagOfPieces[randomIndex], bagOfPieces[currentIndex]]
-  }
-}
+    constructor() {
+        this.tetris = new Renderer(this, {
+            id: '#tetris',
+            width: this.#DEFAULT_MATRIX_WIDTH,
+            height: this.#DEFAULT_MATRIX_HEIGHT,
+            size: this.#DEFAULT_PIXEL_SIZE,
+        })
 
-let playerPiece = null
+        this.pieceBox = new Renderer(this, {
+            id: '#pieceBox',
+            width: this.#DEFAULT_PIECE_BOX_WIDTH,
+            height: this.#DEFAULT_PIECE_BOX_HEIGHT,
+            size: this.#DEFAULT_PIXEL_SIZE,
+        })
 
-function getPiecePos(x, y) {
-  return {
-    px: x + playerPiece.position.x,
-    py: y + playerPiece.position.y
-  }
-}
+        this.matrix = new Matrix(this.tetris, {
+            width: this.#DEFAULT_MATRIX_WIDTH,
+            height: this.#DEFAULT_MATRIX_HEIGHT,
+        })
 
-function drawPlayerPiece() {
-  playerPiece.shape.forEach((row, y) => {
-    row.forEach((value, x) => {
-      if (value !== 0) {
-        // Draw piece
-        const { px, py } = getPiecePos(x, y)
-        context.fillStyle = playerPiece.color
-        context.fillRect(px, py, 1, 1)
+        this.matrixBox = new Matrix(this.pieceBox, {
+            width: 7,
+            height: 7,
+        })
 
-        // Draw Shadow
-        const limits = []
-        let shawY = py + 1
-        while (shawY < MATRIX_HEIGHT) {
-          const cell = matrix[shawY][px]
-          if (cell === 0 && !limits.some(l => l[0] === px || l[1] === shawY)) {
-            context.clearRect(px, shawY, 1, 1)
-            context.fillStyle = 'rgba(118, 103, 194, 0.05)'
-            context.fillRect(px, shawY, 1, 1)
-          } else {
-            limits.push([px, shawY])
-          }
-          shawY++
+        // UI
+        this.startScreen = document.querySelector('#startScreen')
+        this.levelLabel = document.querySelector('#levelLabel')
+        this.scoreLabel = document.querySelector('#scoreLabel')
+
+        // Audio
+        this.mainTheme = document.querySelector('#mainTheme')
+        this.mainTheme.volume = 0.85
+
+        this.dropTheme = document.querySelector('#dropTheme')
+        this.dropTheme.volume = 1
+
+        this.overTheme = document.querySelector('#overTheme')
+        this.overTheme.volume = 1
+
+        // States
+        this.started = false
+
+        this.dropCounter = 0
+
+        this.lastTime = 0
+
+        this.score = 0
+
+        this.level = 0
+
+        this.box = null
+
+        this.bag = new Bag()
+
+        this.player = this.bag.shift()
+    }
+
+    start() {
+        if (!this.started) {
+            this.started = true
+            this.startScreen.remove()
+            this.reset()
+            this.update()
         }
-      }
-    })
-  })
-}
-
-function drawBoard() {
-  context.fillStyle = '#090426'
-  context.fillRect(0, 0, canvas.width, canvas.height)
-
-  for (let y = 0; y < matrix.length; y++) {
-    for (let x = 0; x < matrix[y].length; x++) {
-      const cell = matrix[y][x]
-      if (cell !== 0) {
-        const piece = PIECES[cell - 1]
-        context.fillStyle = piece.color
-        context.fillRect(x, y, 1, 1)
-      }
     }
-  }
-}
 
-let pieceBox = null
+    update(time = 0) {
+        const deltaTime = time - this.lastTime
+        this.lastTime = time
+        this.updateDropCounter(deltaTime)
 
-function savePiece() {
-  if (pieceBox === null) {
-    pieceBox = Object.assign({}, playerPiece)
-    playerPiece = pickPieceFromBag()
-  } else {
-    const aux = Object.assign({}, playerPiece)
-    playerPiece = Object.assign({}, pieceBox)
-    pieceBox = aux
-  }
+        this.drawAll()
+        window.requestAnimationFrame(t => this.update(t))
+    }
 
-  resetPlayerPos()
-}
-
-function drawPieceBox() {
-  pieceBoxContext.fillStyle = '#090426'
-  pieceBoxContext.fillRect(0, 0, pieceBoxCanvas.width, pieceBoxCanvas.height)
-
-  if (pieceBox) {
-    pieceBox.shape.forEach((row, y) => {
-      row.forEach((value, x) => {
-        if (value !== 0) {
-          pieceBoxContext.fillStyle = pieceBox.color
-          pieceBoxContext.fillRect(x + 2, y + 2, 1, 1)
+    updateDropCounter(delta) {
+        this.dropCounter += delta
+        if (this.dropCounter > 1000) {
+            this.player.position.y++
+            this.fixFallCollision()
+            this.updateLevel()
         }
-      })
-    })
-  }
-}
-
-function draw() {
-  drawBoard()
-  drawPieceBox()
-  drawPlayerPiece()
-}
-
-// Main game loop
-let dropCounter = 0
-let lastTime = 0
-
-function update(time = 0) {
-  const deltaTime = time - lastTime
-  lastTime = time
-
-  dropCounter += deltaTime
-
-  if (dropCounter > 1000) {
-    playerPiece.position.y++
-    fixFallCollision()
-
-    // Dificultad
-    if (score >= 1000) {
-      const unit = parseInt(score / 1000)
-      dropCounter = parseInt((unit * 100) * (55 / 100))
-
-      levelLabel.textContent = unit
-    } else {
-      dropCounter = 0
-    }
-  }
-
-  draw()
-  window.requestAnimationFrame(update)
-}
-
-function checkPlayerCollision() {
-  return playerPiece.shape.find((row, y) => {
-    return row.find((value, x) => {
-      const { px, py } = getPiecePos(x, y)
-      return (
-        value &&
-        value !== 0 &&
-        matrix[py]?.[px] !== 0
-      )
-    })
-  })
-}
-
-function fixFallCollision() {
-  if (checkPlayerCollision()) {
-    playerPiece.position.y--
-    solidifyPlayerPiece()
-    clearRows()
-
-    return true
-  }
-
-  return false
-}
-
-function solidifyPlayerPiece() {
-  playerPiece.shape.forEach((row, y) => {
-    row.forEach((value, x) => {
-      if (value !== 0) {
-        const { px, py } = getPiecePos(x, y)
-        matrix[py][px] = playerPiece.id
-      }
-    })
-  })
-
-  playerPiece = pickPieceFromBag()
-  resetPlayerPos()
-
-  if (checkPlayerCollision()) {
-    mainTheme.pause()
-    mainTheme.currentTime = 0
-
-    gameOverTheme.play()
-    alert('Game Over!')
-
-    resetGame()
-  }
-}
-
-function clearRows() {
-  matrix.forEach((row, y) => {
-    if (row.every(value => value !== 0)) {
-      matrix.splice(y, 1)
-      const newRow = Array(MATRIX_WIDTH).fill(0)
-      matrix.unshift(newRow)
-      updateScore(250)
-    }
-  })
-}
-
-const clone = (items) => items.map(item => Array.isArray(item) ? clone(item) : item);
-
-function rotatePlayerPiece() {
-  const rotated = []
-  const prevShape = clone(playerPiece.shape)
-
-  // Transponer la matriz
-  for (let i = 0; i < playerPiece.shape[0].length; i++) {
-    const row = []
-
-    for (let j = playerPiece.shape.length - 1; j >= 0; j--) {
-      row.push(playerPiece.shape[j][i])
     }
 
-    rotated.push(row)
-  }
+    updateLevel() {
+        // Ajusta la 'dificultad' (velocidad de caída) cada 1000 puntos
+        if (this.score >= 1000) {
+            const unit = parseInt(this.score / 1000)
+            this.dropCounter = parseInt((unit * 100) * (60 / 100))
+            this.levelLabel.textContent = unit
+        } else {
+            this.dropCounter = 0
+        }
+    }
 
-  playerPiece.shape = rotated
-  if (checkPlayerCollision()) {
-    playerPiece.shape = prevShape
-  }
+    drawAll() {
+        this.matrix.draw(this.tetris.canvas, this.tetris.context)
+        this.drawPieceBox()
+        this.drawWithShadow(this.tetris.context)
+    }
+
+    drawWithShadow(ctx) {
+        this.player.shape.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    const { dx, dy } = this.player.getPosition(x, y)
+                    ctx.fillStyle = this.player.color
+                    ctx.fillRect(dx, dy, 1, 1)
+
+                    let sy = dy + 1
+                    while (sy < this.matrix.height) {
+                        const cell = this.matrix.look(dx, sy)
+                        if (cell === 0 && sy > (this.player.position.y)) {
+                            ctx.clearRect(dx, sy, 1, 1)
+                            ctx.fillStyle = 'rgba(118, 103, 194, 0.05)'
+                            ctx.fillRect(dx, sy, 1, 1)
+                        }
+                        sy++
+                    }
+                }
+            })
+        })
+    }
+
+    checkCollision() {
+        return this.player.shape.find((row, y) => {
+            return row.find((value, x) => {
+                const { dx, dy } = this.player.getPosition(x, y)
+                return (
+                    value &&
+                    value !== 0 &&
+                    this.matrix.body[dy]?.[dx] !== 0
+                )
+            })
+        })
+    }
+
+    fixFallCollision() {
+        if (this.checkCollision()) {
+            this.player.position.y--
+            this.solidify()
+            this.clearRows()
+      
+            return true
+        }
+        
+        return false
+    }
+
+    solidify() {
+        this.player.shape.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    const { dx, dy } = this.player.getPosition(x, y)
+                    this.matrix.body[dy][dx] = this.player.id
+                }
+            })
+        })
+        
+        this.player = this.bag.shift()
+        this.player.resetPosition()
+        
+        if (this.checkCollision()) {
+            this.gameOver()
+        }
+    }
+
+    clearRows() {
+        this.matrix.body.forEach((row, y) => {
+            if (row.every(value => value !== 0)) {
+                const newRow = Array(this.#DEFAULT_MATRIX_WIDTH).fill(0)
+                this.matrix.body.splice(y, 1)
+                this.matrix.body.unshift(newRow)
+                this.updateScore(250)
+            }
+        })
+    }
+
+    rotatePiece() {
+        const rotated = this.player.rotate()
+        const prev = this.player.shape
+
+        this.player.shape = rotated
+        if (this.checkCollision()) {
+            this.player.shape = prev
+        }
+    }
+
+    gameOver() {
+        this.mainTheme.pause()
+        this.mainTheme.currentTime = 0
+
+        this.overTheme.play()
+        alert('Game Over!')
+
+        this.reset()
+    }
+
+    reset() {
+        this.matrix.clear()
+
+        this.bag = new Bag()
+
+        this.player = this.bag.shift()
+        this.player.resetPosition()
+
+        this.box = null
+        this.matrixBox.clear()
+        
+        this.score = 0
+        this.updateScore()
+        
+        this.levelLabel.textContent = 0
+        
+        this.mainTheme.play()
+    }
+
+    updateScore(value = 0) {
+        if (value) this.score += value
+        this.scoreLabel.textContent = this.score.toString()
+    }
+
+    moveLeft() {
+        this.player.position.x--
+        if (this.checkCollision()) {
+            this.player.position.x++
+        }
+    }
+
+    moveRight() {
+        this.player.position.x++
+        if (this.checkCollision()) {
+            this.player.position.x--
+        }
+    }
+
+    moveDown() {
+        this.player.position.y++
+        this.fixFallCollision()
+    }
+
+    dropPiece() {
+        while (!this.fixFallCollision()) {
+            this.player.position.y++
+        }
+        this.dropTheme.play()
+    }
+
+    savePiece() {
+        if (this.box) {
+            const aux = this.player.clone()
+            this.player = this.box
+            this.box = aux
+        } else {
+            this.box = this.player.clone()
+            this.player = this.bag.shift()
+        }
+        this.player.resetPosition()
+    }
+
+    drawPieceBox() {
+        this.pieceBox.context.fillStyle = '#090426'
+        this.pieceBox.context.fillRect(0, 0, this.pieceBox.canvas.width, this.pieceBox.canvas.height)
+      
+        if (this.box) {
+            this.box.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        this.pieceBox.context.fillStyle = this.box.color
+                        this.pieceBox.context.fillRect(x + 2, y + 2, 1, 1)
+                    }
+                })
+            })
+        }
+    }
 }
 
-function dropPiece() {
-  while (!fixFallCollision()) {
-    playerPiece.position.y++
-  }
-  dropTheme.play()
-}
-
-function updateScore(value) {
-  score += value
-  scoreLabel.textContent = score
-}
-
-function resetMatrix() {
-  matrix.forEach(row => row.fill(0))
-}
-
-function resetPlayerPos() {
-  playerPiece.position.x = 4
-  playerPiece.position.y = 0
-}
-
-function resetGame() {
-  resetMatrix()
-
-  bagOfPieces = [...PIECES]
-  shuffleBag()
-
-  playerPiece = pickPieceFromBag()
-  resetPlayerPos()
-
-  pieceBox = null
-
-  score = 0
-  scoreLabel.textContent = 0
-
-  levelLabel.textContent = 0
-
-  mainTheme.play()
-}
-
-const startScreen = document.querySelector('#startScreen')
-let started = false
-
-function start() {
-  resetGame()
-  update()
-}
-
+const game = new Game()
 document.addEventListener('keydown', event => {
-  event.preventDefault()
-
-  switch (event.key) {
-    case EVENT_MOVEMENTS.LEFT:
-      playerPiece.position.x--
-      if (checkPlayerCollision()) {
-        playerPiece.position.x++
-      }
-
-      break
-
-    case EVENT_MOVEMENTS.RIGHT:
-      playerPiece.position.x++
-      if (checkPlayerCollision()) {
-        playerPiece.position.x--
-      }
-
-      break
-
-    case EVENT_MOVEMENTS.DOWN:
-      playerPiece.position.y++
-      fixFallCollision()
-
-      break
-
-    case EVENT_MOVEMENTS.ROTATE:
-      rotatePlayerPiece()
-      break
-
-    case EVENT_MOVEMENTS.DROP:
-      dropPiece()
-      break
-
-    case EVENT_MOVEMENTS.SAVE_PIECE:
-      savePiece()
-      break
-    
-    default:
-      if (!started) {
-        started = true
-        startScreen.remove()
-        start()
-      }
-  }
+    event.preventDefault()    
+    switch (event.key) {
+        case EVENT_MOVEMENTS.LEFT:
+            game.moveLeft()
+        break
+        
+        case EVENT_MOVEMENTS.RIGHT:
+            game.moveRight()
+        break
+  
+        case EVENT_MOVEMENTS.DOWN:
+            game.moveDown()
+        break
+  
+        case EVENT_MOVEMENTS.ROTATE:
+            game.rotatePiece()
+        break
+  
+        case EVENT_MOVEMENTS.DROP:
+            game.dropPiece()
+        break
+  
+        case EVENT_MOVEMENTS.SAVE_PIECE:
+            game.savePiece()
+        break
+      
+        default: game.start(); game.updateScore(5500)
+    }
 })
