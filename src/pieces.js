@@ -1,4 +1,3 @@
-
 // Pieces: O, I, T, L, J, S, Z
 class Tetrimino {
     #DEFAULT_POS_X = 4

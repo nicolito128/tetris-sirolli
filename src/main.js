@@ -19,6 +19,7 @@ class Game {
 
     #DEFAULT_PIECE_BOX_WIDTH = 7
     #DEFAULT_PIECE_BOX_HEIGHT = 7
+    #DEFAULT_PIECE_BOX_SIZE = 20
 
     constructor() {
         this.tetris = new Renderer(this, {
@@ -32,7 +33,7 @@ class Game {
             id: '#pieceBox',
             width: this.#DEFAULT_PIECE_BOX_WIDTH,
             height: this.#DEFAULT_PIECE_BOX_HEIGHT,
-            size: this.#DEFAULT_PIXEL_SIZE - 5,
+            size: this.#DEFAULT_PIECE_BOX_SIZE,
         })
 
         this.matrix = new Matrix(this.tetris, {
