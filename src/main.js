@@ -32,7 +32,7 @@ class Game {
             id: '#pieceBox',
             width: this.#DEFAULT_PIECE_BOX_WIDTH,
             height: this.#DEFAULT_PIECE_BOX_HEIGHT,
-            size: this.#DEFAULT_PIXEL_SIZE,
+            size: this.#DEFAULT_PIXEL_SIZE - 5,
         })
 
         this.matrix = new Matrix(this.tetris, {

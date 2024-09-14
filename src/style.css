@@ -43,10 +43,6 @@ strong {
   left: -50%;
 }
 
-.tetris-box {
-  margin-right: 50px;
-}
-
 .start-screen {
   position: absolute;
   background: rgba(0, 0, 0, 0.7);
@@ -58,7 +54,7 @@ strong {
   flex-direction: column;
   top: 0;
   inset: 0;
-  font-size: 48px;
+  font-size: 40px;
   z-index: 999;
 }
 
