@@ -107,14 +107,16 @@ class Game {
     }
 
     updateLevel() {
-        // Ajusta la 'dificultad' (velocidad de caída) cada 1000 puntos
+        // Ajusta la 'dificultad' (velocidad de caída)
+        const unit = parseInt(this.score / 1000)
+        this.levelLabel.textContent = unit
+
+        let diff = 50
         if (this.score >= 1000) {
-            const unit = parseInt(this.score / 1000)
-            this.dropCounter = parseInt((unit * 100) * (60 / 100))
-            this.levelLabel.textContent = unit
-        } else {
-            this.dropCounter = 0
+            diff = parseInt((unit * 100) * (45 / 100) + unit)
         }
+
+        this.dropCounter = diff
     }
 
     drawAll() {
@@ -196,6 +198,7 @@ class Game {
                 this.matrix.body.splice(y, 1)
                 this.matrix.body.unshift(newRow)
                 this.updateScore(250)
+                this.updateLevel()
             }
         })
     }
@@ -327,6 +330,7 @@ document.addEventListener('keydown', event => {
             game.savePiece()
         break
       
-        default: game.start()
+        default: 
+            game.start()
     }
 })
