@@ -111,9 +111,18 @@ class Game {
         const unit = parseInt(this.score / 1000)
         this.levelLabel.textContent = unit
 
-        let diff = 50
+        let diff = 100
+        let mult = 60
+        if (this.score >= 10_000) {
+            mult = mult*2
+        }
+
+        // Cálculo de ML
         if (this.score >= 1000) {
-            diff = parseInt((unit * 100) * (45 / 100) + unit)
+            const A_caret = this.score
+            const AO_A = unit
+            const ML = Math.log(A_caret / AO_A);
+            diff = ML * mult
         }
 
         this.dropCounter = diff
@@ -218,7 +227,7 @@ class Game {
         this.mainTheme.currentTime = 0
 
         this.overTheme.play()
-        alert('Game Over!')
+        alert('¡Perdiste!')
 
         this.reset()
     }
