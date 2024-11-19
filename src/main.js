@@ -206,7 +206,7 @@ class Game {
                 const newRow = Array(this.#DEFAULT_MATRIX_WIDTH).fill(0)
                 this.matrix.body.splice(y, 1)
                 this.matrix.body.unshift(newRow)
-                this.updateScore(250)
+                this.updateScore(350)
                 this.updateLevel()
             }
         })
