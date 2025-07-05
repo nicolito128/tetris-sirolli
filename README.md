@@ -1,3 +1,3 @@
 # Tetris
 
-[![Video de demostración]()](./resources/tetris-sirolli-example-video.mp4)
+![]([docs/docfx/images/NormalBlend.gif](https://github.com/user-attachments/assets/828841e6-25f3-417a-afed-8b6e6e8447e1))
